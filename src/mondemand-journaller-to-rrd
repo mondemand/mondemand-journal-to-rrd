@@ -1,0 +1,35 @@
+#!/bin/sh
+
+lock=/var/lock/subsys/mondemand-journaller-to-rrd
+
+if test ! -f $lock ; then
+  touch $lock
+
+  # since we run every minute, and rotation happens every minute, sleep
+  # for a couple seconds so we have something to work with most minutes
+  sleep 5
+
+  # prepare files to work with
+  mv /mnt/mondemand-journaller/journals/incoming/all_events.log.20* \
+     /mnt/mondemand-journaller/journals/to_load 2> /dev/null
+
+  # load them
+  num_journals=`ls /mnt/mondemand-journaller/journals/to_load/*.gz 2> /dev/null | wc -l`
+  if test $num_journals -gt 0 ; then
+    for journal in /mnt/mondemand-journaller/journals/to_load/*.gz ; do
+      short=`basename $journal`
+      echo -n "`date +'%a %b %e %H:%M:%S %Y'` : $short "
+      journal-to-mondemand $journal | mondemand-to-rrd
+      mv $journal /mnt/mondemand-journaller/journals/loaded
+    done
+  else
+    echo "`date +'%a %b %e %H:%M:%S %Y'` : WARNING: no journals available"
+  fi
+
+  rm -f $lock
+else
+  echo "`date +'%a %b %e %H:%M:%S %Y'` : WARNING: previous run not finished!"
+fi
+
+exit 0
+

@@ -1,0 +1,19 @@
+# put whatever (auto)make commands here, they will be included from Makefile.am
+#
+
+AM_CFLAGS=--std=c99
+
+bin_PROGRAMS =		\
+  journal-to-mondemand
+
+bin_SCRIPTS =	\
+  mondemand-journaller-to-rrd \
+  mondemand-to-rrd
+
+journal_to_mondemand_SOURCES =	\
+  journal-to-mondemand.c
+
+journal_to_mondemand_LDADD =		\
+  @FW_PKGCONFIG_PREREQS_LIBS@ -lz
+
+EXTRA_DIST += $(bin_SCRIPTS)

@@ -1,0 +1,172 @@
+#!/usr/local/bin/perl
+
+use strict;
+use warnings;
+use RRDs;
+use POSIX qw(strftime);
+
+my $datadir = "/var/run/mondemand-listener/data";
+
+my $num_rrds_written = 0;
+my $num_errors = 0;
+
+my $start       = time();
+
+while (my $line = <ARGV>)
+{
+  chomp $line;
+  my ($type, $host, $program, $secs, $key, $value, $context_string) =
+   split /\t/, $line;
+
+  fileUpdate ("$datadir/raw", $host, $program, $secs,
+              $key, $value, $context_string);
+
+  if ($type eq "gauge")
+    {
+      $num_errors += rrdGaugeUpdate   ("$datadir/rrd",
+                                       $host,
+                                       $program,
+                                       $secs,
+                                       $key,
+                                       $value,
+                                       $context_string);
+      $num_rrds_written++;
+    }
+  else
+    {
+      $num_errors += rrdCounterUpdate ("$datadir/rrd",
+                                       $host,
+                                       $program,
+                                       $secs,
+                                       $key,
+                                       $value,
+                                       $context_string);
+      $num_rrds_written++;
+    }
+}
+my $end = time()-$start;
+print "processed with $num_rrds_written successful actions and $num_errors errors in $end seconds\n";
+
+sub fileUpdate
+{
+  my ($root, $host, $program, $timestamp,
+      $metric_name, $metric_value, $context_string) = @_;
+
+  my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) =
+    localtime ($timestamp);
+  $year += 1900;
+  $mon += 1;
+
+  my $dir_prefix = sprintf "$root/%04d/%02d/%02d",$year,$mon,$mday;
+
+  my $dir   = "$dir_prefix/$program";
+  unless (-d $dir)
+    {
+      `mkdir -p $dir`;
+    }
+  my $file  = "$dir/$host";
+  open DATA, ">> $file";
+  my $date =
+    sprintf "%04d/%02d/%02d %02d:%02d:%02d",$year,$mon,$mday,
+                                            $hour,$min, $sec;
+  $context_string = "" unless defined ($context_string);
+  print DATA "$date\t$metric_name\t$metric_value\t$context_string\n";
+  close DATA;
+}
+
+sub rrdGaugeUpdate
+{
+  my ($root, $host, $program, $timestamp,
+      $metric_name, $metric_value, $context_string) = @_;
+  my $dir = "$root/$program/$metric_name";
+  my $errors = 0;
+  unless (-d $dir)
+    {
+      `mkdir -p $dir`;
+    }
+  my $suffix =
+   $host.((defined ($context_string) and $context_string ne "")
+          ? "$context_string"
+          : "");
+  my $file  = "$dir/$program-gauge-$metric_name-$suffix.rrd";
+  unless (-f $file)
+    {
+      my $step = 60;                   # basic step is 60 seconds
+      my $hb   = 15*$step;             # heartbeat is 15 minutes
+      RRDs::create (
+          $file,
+          "--step", "$step",
+          "--start", "now - 90 days",
+          "DS:value:GAUGE:$hb:U:U",
+          "RRA:AVERAGE:0.5:1:44640",   # one a minute for 31 days
+          "RRA:AVERAGE:0.5:15:9600",   # one every 15 minutes for 100 days
+          "RRA:AVERAGE:0.5:1440:400",  # one every day for about 400 days
+      );
+      if (my $ERR = RRDs::error())
+        {
+          print STDERR "WARNING: rrdGaugeUpdate : while creating $file: $ERR\n";
+          $errors++;
+        }
+    }
+  RRDs::update (
+    $file,
+    "$timestamp:$metric_value",
+    "--daemon", "/var/run/rrdcached.sock"
+  );
+  if (my $ERR = RRDs::error())
+    {
+      print STDERR "WARNING: rrdGaugeUpdate : while updating $file with $timestamp:$metric_value : $ERR\n";
+      $errors++;
+    }
+  return $errors;
+}
+
+sub rrdCounterUpdate
+{
+  my ($root, $host, $program, $timestamp,
+      $metric_name, $metric_value, $context_string) = @_;
+  my $dir = "$root/$program/$metric_name";
+  my $errors = 0;
+  unless (-d $dir)
+    {
+      `mkdir -p $dir`;
+    }
+  my $suffix =
+   $host.((defined ($context_string) and $context_string ne "")
+          ? "$context_string"
+          : "");
+  my $file  = "$dir/$program-counter-$metric_name-$suffix.rrd";
+  unless (-f $file)
+    {
+      my $step = 60;                   # basic step is 60 seconds
+      my $hb   = 15*$step;             # heartbeat is 15 minutes
+      RRDs::create (
+          $file,
+          "--step", "$step",
+          "--start", "now - 90 days",
+          "DS:value:DERIVE:$hb:0:U",   # use DERIVE with min=0 instead of
+                                       # COUNTER, see rrdcreate manpage
+          "RRA:AVERAGE:0.5:1:44640",   # one a minute for 31 days
+          "RRA:AVERAGE:0.5:15:9600",   # one every 15 minutes for 100 days
+          "RRA:AVERAGE:0.5:1440:400",  # one every day for about 400 days
+      );
+      if (my $ERR = RRDs::error())
+        {
+          print STDERR "WARNING: rrdCounterUpdate : while creating $file: $ERR\n";
+          $errors++;
+        }
+    }
+  RRDs::update (
+    $file,
+    "$timestamp:$metric_value",
+    "--daemon", "/var/run/rrdcached.sock"
+  );
+  if (my $ERR = RRDs::error())
+    {
+      print STDERR "WARNING: rrdCounterUpdate : while updating $file with $timestamp:$metric_value : $ERR\n";
+      $errors++;
+    }
+  return $errors;
+}
+
+1;
