@@ -5,7 +5,7 @@ use warnings;
 use RRDs;
 use POSIX qw(strftime);
 
-my $datadir = "/var/run/mondemand-listener/data";
+my $datadir = "/var/lib/mondemand/data";
 
 my $num_rrds_written = 0;
 my $num_errors = 0;
