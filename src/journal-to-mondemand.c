@@ -53,6 +53,7 @@ int main(int argc, char **argv)
 {
   gzFile file;
   const char *filename;
+  const char *ctx_delim;
   char header[22];
   unsigned char buf[65535];
   struct lwes_event_deserialize_tmp *dtmp =
@@ -61,10 +62,16 @@ int main(int argc, char **argv)
   if (argc == 2)
     {
       filename = argv[1];
+      ctx_delim = "-";
+    }
+  else if (argc == 3)
+    {
+      filename = argv[1];
+      ctx_delim = argv[2];
     }
   else
     {
-      fprintf (stderr, "Usage: prog <journal>\n");
+      fprintf (stderr, "Usage: prog <journal> [<context delimiter> (defaults to '-') ]\n");
       exit (1);
     }
   file = gzopen (filename, "rb");
@@ -131,7 +138,7 @@ int main(int argc, char **argv)
           strcat (context_string, ctxts[i].key);
           strcat (context_string, "=");
           strcat (context_string, ctxts[i].val);
-          strcat (context_string, "-");
+          strcat (context_string, ctx_delim);
         }
       size_t last = strlen (context_string);
       context_string[last-1] = '\0';
