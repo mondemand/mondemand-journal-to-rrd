@@ -1,6 +1,6 @@
 #!/bin/sh
 
-lock=/var/lock/subsys/mondemand-journaller-to-rrd
+lock=/tmp/mondemand-journaller-to-rrd
 
 if test ! -f $lock ; then
   touch $lock

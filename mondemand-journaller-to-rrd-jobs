@@ -1,1 +1,1 @@
-* * * * * root (mkdir -p /mnt/mondemand-journaller/log && /usr/bin/mondemand-journaller-to-rrd >> /mnt/mondemand-journaller/log/journaller-to-rrd.log 2>> /mnt/mondemand-journaller/log/journaller-to-rrd.err)
+* * * * * apache (mkdir -p /mnt/mondemand-journaller/log && /usr/bin/mondemand-journaller-to-rrd >> /mnt/mondemand-journaller/log/journaller-to-rrd.log 2>> /mnt/mondemand-journaller/log/journaller-to-rrd.err)
