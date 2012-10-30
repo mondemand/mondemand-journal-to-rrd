@@ -6,6 +6,7 @@ use RRDs;
 use POSIX qw(strftime);
 
 my $datadir = "/var/lib/mondemand/data";
+my $rrdsock = "/var/run/rrdcached/rrdcached.sock";
 
 my $num_rrds_written = 0;
 my $num_errors = 0;
@@ -111,7 +112,7 @@ sub rrdGaugeUpdate
   RRDs::update (
     $file,
     "$timestamp:$metric_value",
-    "--daemon", "/var/run/rrdcached.sock"
+    "--daemon", $rrdsock
   );
   if (my $ERR = RRDs::error())
     {
@@ -159,7 +160,7 @@ sub rrdCounterUpdate
   RRDs::update (
     $file,
     "$timestamp:$metric_value",
-    "--daemon", "/var/run/rrdcached.sock"
+    "--daemon", $rrdsock
   );
   if (my $ERR = RRDs::error())
     {

@@ -13,6 +13,8 @@ set -e
 case "$1" in
   configure)
     # most recently configured version is $2 (possibly empty string)
+    chmod -R 777 /mnt/mondemand-journaller
+    chown -R apache:apache /var/lib/mondemand/
     ;;
   *)
     ;;
