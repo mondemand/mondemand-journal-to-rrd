@@ -2,7 +2,7 @@
 # variable FW_PACKAGE_DEFAULT_MAINTAINER if non-empty at init time
 
 FW_PACKAGE_NAME="mondemand-journal-to-rrd"
-FW_PACKAGE_VERSION="0.2.0"
+FW_PACKAGE_VERSION="0.3.0"
 FW_PACKAGE_MAINTAINER="Anthony Molinaro <anthonym@alumni.caltech.edu>"
 FW_PACKAGE_SHORT_DESCRIPTION="Take journals from current mondemand-server and write to rrds."
 FW_PACKAGE_DESCRIPTION=`cat README`
